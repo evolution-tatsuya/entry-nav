@@ -271,7 +271,7 @@ function startCompass(){
 function applyRotation(){
   S.mapRot=S.headUp?-S.hdg:0;
   $('map').style.transform='rotate('+S.mapRot+'deg)';
-  const cw=document.getElementById('carwrap'); if(cw) cw.style.transform='rotate('+((S.hdg+S.mapRot+360)%360)+'deg)';
+  const cw=document.getElementById('carwrap'); if(cw) cw.style.transform='rotate('+Math.round(S.hdg)+'deg)'; // 地図の回転を継承するので実方位をそのまま
   document.querySelectorAll('.cp').forEach(el=>el.style.transform='rotate('+(-S.mapRot)+'deg)');
   $('btn-headup').textContent=S.headUp?'進行方向↑':'北が上';
   $('northsvg').style.transform='rotate('+S.mapRot+'deg)'; $('hdgtxt').textContent='方位 '+Math.round(S.hdg)+'°'+(S.headUp?'（地図回転）':'（北が上）');
@@ -285,7 +285,7 @@ function onFix(lat,lng,speedMs,ts,headingDeg){
   else if(S.prev&&distM(S.prev.p,p)>=4&&ts>S.prev.t&&distM(S.prev.p,p)/((ts-S.prev.t)/1000)>2) hd=bearing(S.prev.p,p);
   else if(S.compass!=null&&Date.now()-S.compassT<3000) hd=S.compass;   // 低速・停車中はコンパス
   S._fastMoving=(speedMs>2)||(S.prev&&ts>S.prev.t&&distM(S.prev.p,p)/((ts-S.prev.t)/1000)>2);
-  if(hd!=null){ let d=((hd-S.hdg+540)%360)-180; S.hdg=(S.hdg+d*0.5+360)%360; }
+  if(hd!=null){ if(!S.hdgInit){ S.hdg=hd; S.hdgInit=true; } else { let d=((hd-S.hdg+540)%360)-180; S.hdg=(S.hdg+d*0.5+360)%360; } }
   applyRotation();
   if(S.follow){ map.setView(p,Math.max(map.getZoom(),15),{animate:false});
     if(S.headUp){ const d=$('mapwrap').clientHeight*0.28, hr=toRad(S.hdg); map.panBy([Math.sin(hr)*d,-Math.cos(hr)*d],{animate:false}); } }
@@ -340,7 +340,7 @@ function start(logOnly){
   S.logOnly=!!logOnly; S.approach=null; S.joined=true; S.pendingJoin=false;
   if(!S.logOnly){ if(!S.route) return; if($('startmode').value==='join'&&!$('sim').checked){ S.joined=false; S.pendingJoin=true; } prepare(); }
   S.log=[]; $('btn-savelog').disabled=true; $('loginfo').textContent='';
-  S.hist=[]; S.sm={}; S.startAt=Date.now(); S.startAt0=null;
+  S.hist=[]; S.sm={}; S.startAt=Date.now(); S.startAt0=null; S.hdgInit=false;
   startCompass();
   S.running=true; $('btn-start').textContent='停止'; $('btn-start').className='stop'; $('sheet').style.display='none';
   beep(880,80,1); say(S.logOnly?'記録を開始します':S.pendingJoin?'現在地からTC1までのルートを計算します':'案内を開始します'); saveState();
